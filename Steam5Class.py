@@ -33,9 +33,6 @@ positive_vocab = set()
 negative_vocab = set()
 min_count = 3  # 너무 높으면 다 사라짐
 
-positive_vocab = set()
-negative_vocab = set()
-
 for word in all_words:
     pos = positive_word_count[word]
     neg = negative_word_count[word]
