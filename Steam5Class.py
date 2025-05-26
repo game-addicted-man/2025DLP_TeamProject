@@ -1,46 +1,50 @@
 import pandas as pd
 import numpy as np
 from collections import Counter
-from mecab import MeCab
+import MeCab
+import re
 
 # 1. 데이터 로딩 및 정제
-# steam.txt에서 10만개, 크롤링해서 얻은 리뷰 2만개 더해서 
-# 5가지 클래스로 분류한 새로운 데이터셋을 만듬
-
 df1 = pd.read_table('steam.txt', names=['label', 'reviews'])
-df2 = pd.read_csv('kr_reviews_labeled.txt', sep='\t', names=['label', 'reviews'], on_bad_lines='skip', engine='python')  # 예외있는 라인 건너뜀
+df2 = pd.read_csv('kr_reviews_labeled.txt', sep='\t', names=['label', 'reviews'], on_bad_lines='skip', engine='python')
 df = pd.concat([df1, df2], ignore_index=True)
 
 df.drop_duplicates(subset=['reviews'], inplace=True)
 df.dropna(how='any', inplace=True)
 
 # 2. 형태소 분석 + 불용어 제거
-mecab = MeCab()
+mecab = MeCab.Tagger()
+
 stopwords = ['도', '는', '다', '의', '가', '이', '은', '한', '에', '하', '고', '을', '를',
              '인', '듯', '과', '와', '네', '들', '지', '임', '게', '만', '게임',
              '겜', '되', '음', '면', '에서', '니까', '어요', '니다']
 
-df['reviews'] = df['reviews'].str.replace("[^ㄱ-ㅎㅏ-ㅣ가-힣 ]", "", regex=True)
-df['tokenized'] = df['reviews'].apply(lambda x: [t for t in mecab.morphs(x) if t not in stopwords])
+# 형태소 분석기용 morphs 함수 구현
+def mecab_morphs(text):
+    parsed = mecab.parse(text)
+    if parsed is None:
+        return []
+    lines = parsed.split('\n')
+    words = [line.split('\t')[0] for line in lines if '\t' in line]
+    return words
+
+# 전처리 및 토큰화
+df['reviews'] = df['reviews'].astype(str).str.replace("[^ㄱ-ㅎㅏ-ㅣ가-힣 ]", "", regex=True)
+df['tokenized'] = df['reviews'].apply(lambda x: [t for t in mecab_morphs(x) if t not in stopwords])
 
 # 3. 긍정/부정 단어 Counter
 positive_words = np.hstack(df[df['label'] == 1]['tokenized'].values)
 negative_words = np.hstack(df[df['label'] == 0]['tokenized'].values)
 
-# 양쪽 word count
 positive_word_count = Counter(positive_words)
 negative_word_count = Counter(negative_words)
 
-# 모든 단어 집합
 all_words = set(positive_word_count.keys()) | set(negative_word_count.keys())
 
 # 4. 비율 기반 긍/부정 단어 선택
 positive_vocab = set()
 negative_vocab = set()
-min_count = 3  # 너무 높으면 다 사라짐
-
-positive_vocab = set()
-negative_vocab = set()
+min_count = 3
 
 for word in all_words:
     pos = positive_word_count[word]
@@ -54,11 +58,6 @@ for word in all_words:
     elif ratio < 0.25:
         negative_vocab.add(word)
 
-
-#print(" 부정 단어 TOP20:", negative_word_count.most_common(20))
-#print(" 긍정 단어 TOP20:", positive_word_count.most_common(20))
-
-
 # 5. 감성 점수 분류 함수 정의
 def classify_sentiment(tokens, pos_words, neg_words):
     pos_count = sum(1 for word in tokens if word in pos_words)
@@ -69,8 +68,6 @@ def classify_sentiment(tokens, pos_words, neg_words):
         return 2  # 중립
 
     ratio = pos_count / total
-
-    # 더 완화된 기준
     if ratio >= 0.75:
         return 4  # 아주 긍정
     elif ratio >= 0.55:
@@ -82,11 +79,10 @@ def classify_sentiment(tokens, pos_words, neg_words):
     else:
         return 0  # 아주 부정
 
-
 # 6. 실제 감성 점수 적용
 df['new_label'] = df['tokenized'].apply(lambda x: classify_sentiment(x, positive_vocab, negative_vocab))
 
-
+# 7. 예시 출력
 for idx in range(10):
     tokens = df['tokenized'].iloc[idx]
     pos_count = sum(1 for word in tokens if word in positive_vocab)
@@ -96,11 +92,10 @@ for idx in range(10):
     print(f"  긍정 단어 수: {pos_count}, 부정 단어 수: {neg_count}")
     print(f"  -> 감성 점수: {classify_sentiment(tokens, positive_vocab, negative_vocab)}\n")
 
-
-# 7. 감성 점수 분포 확인
+# 8. 감성 점수 분포 확인
 print("\n감성 점수 분포 (0~4):")
 print(df['new_label'].value_counts().sort_index())
 
-# 8. 저장
+# 9. 저장
 df[['new_label', 'reviews']].to_csv('steam_5class.txt', sep='\t', index=False, header=False)
 print("steam_5class.txt 파일 생성 완료!")

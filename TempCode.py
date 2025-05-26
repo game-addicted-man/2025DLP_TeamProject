@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import re
-from mecab import MeCab
+import MeCab
 from collections import Counter
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.preprocessing.text import Tokenizer
@@ -11,16 +11,27 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Embedding, Dense, LSTM, Bidirectional
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint
 
+# mecab-python3 기반 morphs 함수 구현
+mecab = MeCab.Tagger()
+
+def mecab_morphs(text):
+    parsed = mecab.parse(text)
+    if parsed is None:
+        return []
+    lines = parsed.split('\n')
+    return [line.split('\t')[0] for line in lines if '\t' in line and line != 'EOS']
+
+# 불용어
+stopwords = ['도', '는', '다', '의', '가', '이', '은', '한', '에', '하', '고', '을', '를',
+             '인', '듯', '과', '와', '네', '들', '지', '임', '게', '만', '게임', '겜', '되', '음', '면']
+
 # 1. 데이터 불러오기
 df = pd.read_table('steam_5class.txt', names=['label', 'reviews'])
 
 # 2. 전처리 및 토큰화
-mecab = MeCab()
-stopwords = ['도', '는', '다', '의', '가', '이', '은', '한', '에', '하', '고', '을', '를',
-             '인', '듯', '과', '와', '네', '들', '지', '임', '게', '만', '게임', '겜', '되', '음', '면']
-df['reviews'] = df['reviews'].str.replace("[^ㄱ-ㅎㅏ-ㅣ가-힣 ]","", regex=True)
+df['reviews'] = df['reviews'].astype(str).str.replace("[^ㄱ-ㅎㅏ-ㅣ가-힣 ]", "", regex=True)
 df.dropna(how='any', inplace=True)
-df['tokenized'] = df['reviews'].apply(mecab.morphs)
+df['tokenized'] = df['reviews'].apply(mecab_morphs)
 df['tokenized'] = df['tokenized'].apply(lambda x: [word for word in x if word not in stopwords])
 
 # 3. 훈련/테스트 분리
@@ -42,20 +53,9 @@ tokenizer.fit_on_texts(train_data['tokenized'])
 X_train = tokenizer.texts_to_sequences(train_data['tokenized'])
 X_test = tokenizer.texts_to_sequences(test_data['tokenized'])
 
-
-# 수정: max_len 구하는 방식 약간 수정함. 기존의 방식은 메모리 낭비가 클 수 있고 
-# 평균과 표준편차를 이용해서 얻은 max_len을 사용한 모델이 성능이 조금 더 높은 경향이 있다고 함 
-# 기존 코드: max_len = max(len(x) for x in X_train)
-
-num_tokens = []
-
-for review in X_train + X_test:
-    num_tokens.append(len(review))
-
-num_tokens = np.array(num_tokens)
-
-max_len = np.mean(num_tokens) + 3 * np.std(num_tokens)
-max_len = int(max_len)
+# max_len 계산 (평균 + 3표준편차)
+num_tokens = [len(x) for x in X_train + X_test]
+max_len = int(np.mean(num_tokens) + 3 * np.std(num_tokens))
 
 X_train = pad_sequences(X_train, maxlen=max_len, padding='post', truncating='post')
 X_test = pad_sequences(X_test, maxlen=max_len, padding='post', truncating='post')
@@ -82,7 +82,7 @@ model.fit(X_train, y_train, epochs=15, callbacks=[es, mc], batch_size=256, valid
 # 7. 예측 함수
 def sentiment_predict(new_sentence):
     new_sentence = re.sub(r'[^ㄱ-ㅎㅏ-ㅣ가-힣 ]','', new_sentence)
-    new_sentence = mecab.morphs(new_sentence)
+    new_sentence = mecab_morphs(new_sentence)
     new_sentence = [word for word in new_sentence if word not in stopwords]
     encoded = tokenizer.texts_to_sequences([new_sentence])
     pad_new = pad_sequences(encoded, maxlen=max_len)
@@ -93,13 +93,13 @@ def sentiment_predict(new_sentence):
     
     print(f"{possibility * 100:.2f}% 확률로 '{labels[score]}' 리뷰입니다.")
 
-# 8. 테스트
+# 8. 테스트 예시
 sentiment_predict('개씨발 좆같은 게임')
 sentiment_predict('진짜 ㄹㅇ 초갓겜, 게임성부터 노래까지 미쳤다 그냥')
 sentiment_predict('ㄹㅇ 병신겜같이 보이는데 초갓겜임, 처음엔 좀 그런데 하다보면 중독성 개쩜, 개재밌음 ㄹㅇㅇ')
 sentiment_predict('노래 좋고, 게임성은 평균, 그렇게까지 재밌지는 않았지만.. 그래도 수작')
 sentiment_predict('애매하다 애매해.. 그렇다고 개똥겜까지는 아님 ㅋㅋ')
 
-
+# 9. 성능 평가
 loss, accuracy = model.evaluate(X_test, y_test)
 print(f"loss: {loss:.2f}, accuracy: {accuracy:.2f}")
