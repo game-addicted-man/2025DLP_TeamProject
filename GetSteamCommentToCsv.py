@@ -148,8 +148,8 @@ if __name__ == '__main__':
     # min_len = int(input("최소 리뷰 길이(문자 수): "))
     crawl_popular_games_reviews(
         output_csv='kr_top_korean_reviews.csv',
-        total_max_reviews=1000,
-        per_app_limit=100,
-        top_n_games=50,
-        min_review_length=50
+        total_max_reviews=20000,
+        per_app_limit=400,
+        top_n_games=100,
+        min_review_length=30
     )
