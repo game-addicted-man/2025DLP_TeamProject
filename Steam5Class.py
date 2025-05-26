@@ -98,9 +98,9 @@ for idx in range(10):
 
 
 # 7. 감성 점수 분포 확인
-print("\n🎯 감성 점수 분포 (0~4):")
+print("\n감성 점수 분포 (0~4):")
 print(df['new_label'].value_counts().sort_index())
 
 # 8. 저장
 df[['new_label', 'reviews']].to_csv('steam_5class.txt', sep='\t', index=False, header=False)
-print("✅ steam_5class.txt 파일 생성 완료!")
+print("steam_5class.txt 파일 생성 완료!")
