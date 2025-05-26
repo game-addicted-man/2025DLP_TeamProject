@@ -1,15 +1,21 @@
 import pandas as pd
 import numpy as np
 from collections import Counter
-from eunjeon import Mecab
+from mecab import MeCab
 
 # 1. 데이터 로딩 및 정제
-df = pd.read_table('steam.txt', names=['label', 'reviews'])
+# steam.txt에서 10만개, 크롤링해서 얻은 리뷰 2만개 더해서 
+# 5가지 클래스로 분류한 새로운 데이터셋을 만듬
+
+df1 = pd.read_table('steam.txt', names=['label', 'reviews'])
+df2 = pd.read_csv('kr_reviews_labeled.txt', sep='\t', names=['label', 'reviews'], on_bad_lines='skip', engine='python')  # 예외있는 라인 건너뜀
+df = pd.concat([df1, df2], ignore_index=True)
+
 df.drop_duplicates(subset=['reviews'], inplace=True)
 df.dropna(how='any', inplace=True)
 
 # 2. 형태소 분석 + 불용어 제거
-mecab = Mecab()
+mecab = MeCab()
 stopwords = ['도', '는', '다', '의', '가', '이', '은', '한', '에', '하', '고', '을', '를',
              '인', '듯', '과', '와', '네', '들', '지', '임', '게', '만', '게임',
              '겜', '되', '음', '면', '에서', '니까', '어요', '니다']
@@ -21,17 +27,20 @@ df['tokenized'] = df['reviews'].apply(lambda x: [t for t in mecab.morphs(x) if t
 positive_words = np.hstack(df[df['label'] == 1]['tokenized'].values)
 negative_words = np.hstack(df[df['label'] == 0]['tokenized'].values)
 
-# 1. 양쪽 word count
+# 양쪽 word count
 positive_word_count = Counter(positive_words)
 negative_word_count = Counter(negative_words)
 
-# 2. 모든 단어 집합
+# 모든 단어 집합
 all_words = set(positive_word_count.keys()) | set(negative_word_count.keys())
 
-# 3. 비율 기반 긍/부정 단어 선택
+# 4. 비율 기반 긍/부정 단어 선택
 positive_vocab = set()
 negative_vocab = set()
 min_count = 3  # 너무 높으면 다 사라짐
+
+positive_vocab = set()
+negative_vocab = set()
 
 for word in all_words:
     pos = positive_word_count[word]
