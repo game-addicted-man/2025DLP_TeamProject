@@ -43,22 +43,10 @@ X_train = tokenizer.texts_to_sequences(train_data['tokenized'])
 X_test = tokenizer.texts_to_sequences(test_data['tokenized'])
 
 
-# 수정: max_len 구하는 방식 약간 수정함. 기존의 방식은 메모리 낭비가 클 수 있고 
-# 평균과 표준편차를 이용해서 얻은 max_len을 사용한 모델이 성능이 조금 더 높은 경향이 있다고 함 
-# 기존 코드: max_len = max(len(x) for x in X_train)
+max_len = max(len(x) for x in X_train)
 
-num_tokens = []
-
-for review in X_train + X_test:
-    num_tokens.append(len(review))
-
-num_tokens = np.array(num_tokens)
-
-max_len = np.mean(num_tokens) + 3 * np.std(num_tokens)
-max_len = int(max_len)
-
-X_train = pad_sequences(X_train, maxlen=max_len, padding='post', truncating='post')
-X_test = pad_sequences(X_test, maxlen=max_len, padding='post', truncating='post')
+X_train = pad_sequences(X_train, maxlen=max_len)
+X_test = pad_sequences(X_test, maxlen=max_len)
 
 # 5. 레이블 원-핫 인코딩
 y_train = to_categorical(train_data['label'].values, num_classes=5)
