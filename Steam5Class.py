@@ -8,7 +8,7 @@ from mecab import MeCab
 # 5가지 클래스로 분류한 새로운 데이터셋을 만듬
 
 df1 = pd.read_table('steam.txt', names=['label', 'reviews'])
-df2 = pd.read_csv('kr_reviews_labeled.txt', sep='\t', names=['label', 'reviews'], on_bad_lines='skip', engine='python')  # 예외있는 라인 건너뜀
+df2 = pd.read_csv('kr_reviews_labeled_scaleup.txt', sep='\t', names=['label', 'reviews'], on_bad_lines='skip', engine='python')  # 예외있는 라인 건너뜀
 df = pd.concat([df1, df2], ignore_index=True)
 
 df.drop_duplicates(subset=['reviews'], inplace=True)
@@ -102,5 +102,5 @@ print("\n🎯 감성 점수 분포 (0~4):")
 print(df['new_label'].value_counts().sort_index())
 
 # 8. 저장
-df[['new_label', 'reviews']].to_csv('steam_5class.txt', sep='\t', index=False, header=False)
-print("✅ steam_5class.txt 파일 생성 완료!")
+df[['new_label', 'reviews']].to_csv('steam_5class_scaleup.txt', sep='\t', index=False, header=False)
+print("✅ steam_5class_scaleup.txt 파일 생성 완료!")

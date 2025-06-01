@@ -88,6 +88,8 @@ sentiment_predict('ㄹㅇ 병신겜같이 보이는데 초갓겜임, 처음엔 �
 sentiment_predict('노래 좋고, 게임성은 평균, 그렇게까지 재밌지는 않았지만.. 그래도 수작')
 sentiment_predict('애매하다 애매해.. 그렇다고 개똥겜까지는 아님 ㅋㅋ')
 
+sentiment_predict("쓰레기 쓰레기 쓰레기 쓰레기 근데 재밌음")        # 실험용
+
 
 loss, accuracy = model.evaluate(X_test, y_test)
 print(f"loss: {loss:.2f}, accuracy: {accuracy:.2f}")

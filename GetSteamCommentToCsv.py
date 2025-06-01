@@ -147,9 +147,9 @@ if __name__ == '__main__':
     # top_n = int(input("한국 기준 인기 게임 몇 개까지 순회? "))
     # min_len = int(input("최소 리뷰 길이(문자 수): "))
     crawl_popular_games_reviews(
-        output_csv='kr_top_korean_reviews.csv',
-        total_max_reviews=20000,
-        per_app_limit=400,
-        top_n_games=100,
+        output_csv='kr_top_korean_reviews_scaleup.csv',
+        total_max_reviews=80000,
+        per_app_limit=10000,
+        top_n_games=1000,
         min_review_length=30
     )

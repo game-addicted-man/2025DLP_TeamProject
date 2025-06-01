@@ -5,8 +5,8 @@ def is_korean(text):
     #한글이 1글자 이상 포함되어 있으면 True
     return bool(re.search(r'[가-힣]', text))
 
-input_csv = 'kr_top_korean_reviews.csv'
-output_txt = 'kr_reviews_labeled.txt'
+input_csv = 'kr_top_korean_reviews_scaleup.csv'
+output_txt = 'kr_reviews_labeled_scaleup.txt'
 
 with open(input_csv, 'r', encoding='utf-8-sig') as f_in, \
      open(output_txt, 'w', encoding='utf-8') as f_out:
